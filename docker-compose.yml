@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  python:
+    build: ./
+    container_name: "fx_auto_trade"
+    volumes:
+    - ./src:/src
+    tty: true
