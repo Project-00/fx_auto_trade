@@ -29,6 +29,7 @@ c = sys.modules["const"]
 
 def predictionService():
 
+    result = False
     response1 = oanda.get_history(instrument="USD_JPY", granularity="D", count=1)
     USD_JPY_D1 = response1.get("candles")
 
@@ -101,7 +102,11 @@ def predictionService():
 
             print(P_TIME + "分の予測データの登録完了")
 
+
         print("データベースの更新処理完了")
+        result = True
+
+    return result
 
 if __name__ == "__main__":
     predictionService()

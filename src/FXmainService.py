@@ -16,13 +16,6 @@ import const
 
 c = sys.modules["const"]
 
-# 毎日更新する処理群
-def Daily():
-    # predictionServiceを更新する処理
-    print("データベースの更新を始める")
-    predictionService()
-    print("更新の完了")
-    return
 
 def UpdateJob():
 
@@ -63,73 +56,58 @@ def UpdateJob():
 
 if __name__ == "__main__":
 
-    # # 一日に一回決まった時間に処理を開始する処理
-    # schedule.every().day.at("7:00").do(Daily)
     # 30分ごとにする処理
     schedule.every(30).minutes.do(UpdateJob)
 
     while(True):
+
+        # スケジューラー発動
+        schedule.run_pending()
+        # 日付をdatatime形式で取得する処理
+        CheckTime = LateDate(1)
+        # 営業日か判定する処理
+        if (workdays.networkdays(CheckTime, CheckTime) >= 1):
+            Time = CheckTime.strftime('%Y/%m/%d')
+            # predictionServceの更新反映処理
+            preresult = predictionService()
+            # predictionServiceのデータベース更新の確認が取れたら起動
+            if (preresult == True):
+                # P_USD_JPY_RATEの中から、値を指定して取得
+                P_USD_JPY = mongod_read_find_one(c.PREDICTION_COL, {"time": Time})
+
+                # USD_JPY_RATEを呼び出してDataFrame型で変数に格納,新しい日付が下に来るようにソート
+                USD_JPY = mongodb_read(c.STUDY_COL)
+                USD_JPY = USD_JPY.sort_values(by="time")
+                USD_JPY = USD_JPY.reset_index()
+                last = len(USD_JPY) - 1  # 最新データの場所のカーソル
+
+                # P_USD_JPYからclose,high,lowの値をそれぞれ変数に格納
+                PClose = P_USD_JPY["close"]
+                PHigh = P_USD_JPY["high"]
+                PLow = P_USD_JPY["low"]
+                # USD_JPY_RATEから昨日のCloseの値を取得
+                SClose = USD_JPY["close"][last]
+
+                # 売買の基準となるCloseの設定(翌日予想が前日に比べて高いか低いか)
+                if (PClose > SClose):
+                    Close = PClose
+                    # Unit = 1000
+                else:
+                    Close = SClose
+                    # Unit = 100
+
         hour = GetHour()
         # 活動時間範囲を決める処理
         if (hour < 7 or hour >= 20):
-            Operation = False
             # 1分置きにチェックさせる
             time.sleep(60)
         else:
-            Operation = True
-            Do_Job = True
+            # １分ごとにする処理
+            # 現在のレートを格納
+            Now_Rate = OandaTimeRate()
+            print("１分足の値")
+            print(Now_Rate)
+            # 売買関数
 
-        # １分ごとにする処理
-        while (Operation == True):
-            # スケジューラー発動
-            schedule.run_pending()
-            # 日付をdatatime形式で取得する処理
-            CheckTime = LateDate(1)
-            # 営業日か判定する処理
-            if (workdays.networkdays(CheckTime, CheckTime) >= 1):
-                Time = CheckTime.strftime('%Y/%m/%d')
-                # predictionServceの更新反映処理
-                # P_USD_JPY_RATEの中から、値を指定して取得
-                if(Do_Job == True):
-                    Daily()
-                    P_USD_JPY = mongod_read_find_one(c.PREDICTION_COL, {"time": Time})
-
-                    # USD_JPY_RATEを呼び出してDataFrame型で変数に格納,新しい日付が下に来るようにソート
-                    USD_JPY = mongodb_read(c.STUDY_COL)
-                    USD_JPY = USD_JPY.sort_values(by="time")
-                    USD_JPY = USD_JPY.reset_index()
-                    last = len(USD_JPY) - 1  # 最新データの場所のカーソル
-
-                    # P_USD_JPYからclose,high,lowの値をそれぞれ変数に格納
-                    PClose = P_USD_JPY["close"]
-                    PHigh = P_USD_JPY["high"]
-                    PLow = P_USD_JPY["low"]
-                    # USD_JPY_RATEから昨日のCloseの値を取得
-                    SClose = USD_JPY["close"][last]
-
-                    # 売買の基準となるCloseの設定(翌日予想が前日に比べて高いか低いか)
-                    if (PClose > SClose):
-                        Close = PClose
-                        # Unit = 1000
-                    else:
-                        Close = SClose
-                        # Unit = 100
-
-                    Do_Job = False
-
-                # 現在のレートを格納
-                Now_Rate = OandaTimeRate()
-                print("１分足の値")
-                print(Now_Rate)
-                # 売買関数
-
-                time.sleep(60)
-                # 終了時間判定(AM７時以下の時、20:00～6:59時の間になるとオペレーション終了)
-                endhour = GetHour()
-                if(endhour < 7 or endhour >= 20):
-                    Operation = False
-
-            else:
-                Operation = False
-
-
+            time.sleep(60)
+            # 終了時間判定(AM７時以下の時、20:00～6:59時の間になるとオペレーション終了)

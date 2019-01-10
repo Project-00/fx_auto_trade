@@ -37,6 +37,10 @@ class _const(object):
     MONTH = "M"
     DAY = "D"
 
+    # アカウント切り替え
+    DEMO = "DEMO"
+    MAIN = "MAIN"
+
     # 注文形式
     SELL_SIDE = "sell"
     BUY_SIDE = "buy"
