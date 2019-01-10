@@ -25,7 +25,5 @@ class PUsdJpyRateDao(DbConnection):
                 , "low" : 1
                 , "high": 1
             }
-            , sort=[("time", pymongo.DESCENDING )]
+            , sort=[("time", pymongo.DESCENDING)]
         )
-a = PUsdJpyRateDao()
-print(a.select_latest_one())
